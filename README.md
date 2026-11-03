@@ -4,6 +4,8 @@ An Android client for the academic system at Southern Medical University (`zhjw.
 
 Unofficial. Not affiliated with the school. Read the disclaimer at the bottom before using the automation parts.
 
+[Download the APK](https://github.com/hey257/smu-helper/releases/latest) — Android 8.0 or newer, no Play Store listing. Signed with a debug key, so uninstall any earlier build first.
+
 ## What's in it
 
 **Timetable.** A period grid instead of clock slots, so a class that runs periods 3–5 is one block, not three separate entries. Swipe left or right on the grid to move a week, or tap the date range to jump anywhere. Weeks with exams are marked. Self-study and other entries with no classroom get a green outline so you can tell at a glance which days you don't have to show up.
