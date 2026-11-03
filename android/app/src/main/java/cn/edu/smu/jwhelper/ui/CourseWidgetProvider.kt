@@ -118,7 +118,7 @@ class CourseWidgetProvider : AppWidgetProvider() {
             val now = LocalTime.now()
             val show = todayCourses.take(MAX_ROWS)
             show.forEach { c ->
-                views.addView(R.id.w_rows, rowOf(context, c, now))
+                views.addView(R.id.w_rows, rowOf(context, c, now, week))
             }
 
             val rest = todayCourses.size - show.size
@@ -132,7 +132,7 @@ class CourseWidgetProvider : AppWidgetProvider() {
             mgr.updateAppWidget(widgetId, views)
         }
 
-        private fun rowOf(context: Context, c: Course, now: LocalTime): RemoteViews {
+        private fun rowOf(context: Context, c: Course, now: LocalTime, week: Int): RemoteViews {
             val row = RemoteViews(context.packageName, R.layout.widget_row)
             val passed = isOver(c, now)
             val nameColor = if (passed) FADE else INK
@@ -158,9 +158,10 @@ class CourseWidgetProvider : AppWidgetProvider() {
                 }
                 else -> row.setViewVisibility(R.id.r_tag, View.GONE)
             }
-            if (c.place.isNotBlank() && !c.online) {
+            val room = c.placeIn(week)
+            if (room.isNotBlank() && !c.online) {
                 if (meta.isNotEmpty()) meta.append(" · ")
-                meta.append(c.place)
+                meta.append(room)
             }
             row.setTextViewText(R.id.r_meta, meta.toString())
             row.setTextColor(R.id.r_meta, subColor)

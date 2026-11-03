@@ -228,6 +228,13 @@ fun TimetableScreen(vm: AppVm) {
         }
     }
 
+    val detailWeek = if (weekly) week else try {
+        if (vm.week1.isBlank()) 0
+        else ChronoUnit.WEEKS.between(LocalDate.parse(vm.week1), day).toInt() + 1
+    } catch (e: Exception) {
+        0
+    }
+
     detail?.let { list ->
         AlertDialog(
             onDismissRequest = { detail = null },
@@ -244,7 +251,7 @@ fun TimetableScreen(vm: AppVm) {
             text = {
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                     list.forEach { c ->
-                        CourseDetail(c, vm.wkhMap[c.name] ?: "")
+                        CourseDetail(c, vm.wkhMap[c.name] ?: "", detailWeek)
                         Spacer(Modifier.height(14.dp))
                     }
                 }
@@ -254,7 +261,7 @@ fun TimetableScreen(vm: AppVm) {
 }
 
 @Composable
-private fun CourseDetail(c: Course, wkh: String) {
+private fun CourseDetail(c: Course, wkh: String, week: Int) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(c.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
@@ -270,7 +277,7 @@ private fun CourseDetail(c: Course, wkh: String) {
         DetailLine("时间", "周${"一二三四五六日"[c.weekDay - 1]} ${c.startHm}–${c.endHm}")
         if (c.periodText.isNotBlank()) DetailLine("节次", c.periodText)
         if (c.teacher.isNotBlank()) DetailLine("教师", c.teacher)
-        DetailLine("地点", c.place.ifBlank { "未写明" })
+        DetailLine("地点", c.placeIn(week).ifBlank { "未写明" })
         if (c.stage.isNotBlank()) DetailLine("环节", c.stage)
         if (c.weeks.isNotEmpty()) DetailLine("周次", c.weeks.joinToString(","))
         if (c.classname.isNotBlank()) DetailLine("教学班", c.classname)
@@ -452,9 +459,10 @@ private fun WeekGrid(
                                             maxLines = 1, overflow = TextOverflow.Ellipsis, color = Sub
                                         )
                                     }
-                                    if (c.place.isNotBlank()) {
+                                    val room = c.placeIn(week)
+                                    if (room.isNotBlank()) {
                                         Text(
-                                            c.place, fontSize = 7.5.sp, lineHeight = 9.sp,
+                                            room, fontSize = 7.5.sp, lineHeight = 9.sp,
                                             maxLines = if ((ep - sp) >= 2) 2 else 1,
                                             overflow = TextOverflow.Ellipsis, color = Sub
                                         )
@@ -522,7 +530,7 @@ private fun DayList(courses: List<Course>, day: LocalDate, week1: String, onDeta
                     }
                     Spacer(Modifier.height(3.dp))
                     Text(
-                        (if (c.teacher.isNotBlank()) c.teacher + "  " else "") + c.place.ifBlank { "地点未写明" },
+                        (if (c.teacher.isNotBlank()) c.teacher + "  " else "") + c.placeIn(w).ifBlank { "地点未写明" },
                         fontSize = 11.sp, color = Sub
                     )
                 }

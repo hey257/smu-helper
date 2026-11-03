@@ -189,6 +189,11 @@ object Prefs {
         get() = sp.getInt("cache_cur_week", 0)
         set(v) = sp.edit().putInt("cache_cur_week", v).apply()
 
+    /** 缓存结构版本，解析规则变了就作废旧缓存 */
+    var cacheVer: Int
+        get() = sp.getInt("cache_ver", 0)
+        set(v) = sp.edit().putInt("cache_ver", v).apply()
+
     /** 课表缓存对应哪个学期，避免切换学期后串数据 */
     var cacheKey: String
         get() = sp.getString("cache_key", "") ?: ""

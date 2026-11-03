@@ -37,7 +37,12 @@ object Repo {
 
     // ---------- 课表 ----------
 
-    fun timetable(xnxqdm: String): List<Course> {
+    /**
+     * @param myJxb 我自己的教学班代码集合（来自「上课任务」）。
+     *   课表接口会把同一门课其他分组班（如 2024临床医学(八年制)[58-115]）的排课一起返回，
+     *   不过滤就会表现为「同一门课同时有好几个教室」。
+     */
+    fun timetable(xnxqdm: String, myJxb: Set<String> = emptySet()): List<Course> {
         val (d1, d2) = rangeOf(xnxqdm)
         val obj = Api.postJson(
             "/new/student/xsgrkb/getCalendarWeekDatas",
@@ -57,7 +62,10 @@ object Repo {
             val o = arr.optJSONObject(i) ?: continue
             val name = Parse.json(o, "kcmc")
             if (name.isBlank()) continue
+            val jxb = Parse.json(o, "jxbdm")
+            if (myJxb.isNotEmpty() && jxb.isNotBlank() && !myJxb.contains(jxb)) continue
             val place = Parse.json(o, "jxcdmc")
+            val placeByWeek = parsePlaceWeeks(Parse.json(o, "jxcdmc2"))
             val noRoom = Parse.json(o, "bapjxcd") == "1"
             val stage = Parse.json(o, "jxhjmc")
             // 重要：学校的 qsxq 用 Java Calendar 编码，1=周日、2=周一 … 7=周六
@@ -71,6 +79,7 @@ object Repo {
                     name = name,
                     teacher = Parse.json(o, "teaxms"),
                     place = place,
+                    placeByWeek = placeByWeek,
                     weekDay = wd,
                     startTime = Parse.json(o, "qssj"),
                     endTime = Parse.json(o, "jssj"),
@@ -127,26 +136,67 @@ object Repo {
 
     // ---------- 网考号（上课任务） ----------
 
-    fun wkhMap(xnxqdm: String): Map<String, String> {
+    /** 按括号层级切分，教室名里本身可能带逗号 */
+    private fun splitTop(s: String): List<String> {
+        val out = ArrayList<String>()
+        val buf = StringBuilder()
+        var depth = 0
+        for (ch in s) {
+            when (ch) {
+                '(', '（' -> { depth++; buf.append(ch) }
+                ')', '）' -> { depth--; buf.append(ch) }
+                ',' -> if (depth <= 0) { out.add(buf.toString()); buf.setLength(0) } else buf.append(ch)
+                else -> buf.append(ch)
+            }
+        }
+        if (buf.isNotEmpty()) out.add(buf.toString())
+        return out
+    }
+
+    /**
+     * jxcdmc2 形如 "501智慧教室-10,601教室-12"，是「教室-周次」的逐条列表。
+     * 用它就能知道某一周到底在哪个教室，而不是把整串教室都显示出来。
+     */
+    private fun parsePlaceWeeks(raw: String): Map<Int, String> {
+        if (raw.isBlank()) return emptyMap()
+        val out = HashMap<Int, String>()
+        val re = Regex("^(.*)-(\\d+)$")
+        splitTop(raw).forEach { seg ->
+            val m = re.find(seg.trim()) ?: return@forEach
+            val p = m.groupValues[1].trim()
+            val w = m.groupValues[2].toIntOrNull() ?: return@forEach
+            if (p.isNotEmpty()) out[w] = p
+        }
+        return out
+    }
+
+    /** 网考号 + 我的教学班代码，一次请求拿全 */
+    fun workTasks(xnxqdm: String): Pair<Map<String, String>, Set<String>> {
+        val empty = emptyMap<String, String>() to emptySet<String>()
         return try {
             val obj = Api.postJson(
                 "/new/student/xskcrw/skrwDatas",
                 mapOf("xnxqdm" to xnxqdm),
                 referer = "${Api.ROOT}/new/student/xskcrw/list.page"
             )
-            val rows = obj.optJSONArray("rows") ?: return emptyMap()
+            val rows = obj.optJSONArray("rows") ?: return empty
             val map = HashMap<String, String>()
+            val jxb = HashSet<String>()
             for (i in 0 until rows.length()) {
                 val o = rows.optJSONObject(i) ?: continue
                 val kc = Parse.json(o, "kcmc")
                 val xid = Parse.json(o, "xid")
+                val code = Parse.json(o, "jxbdm")
                 if (kc.isNotBlank() && xid.isNotBlank()) map[kc] = xid
+                if (code.isNotBlank()) jxb.add(code)
             }
-            map
+            map to jxb
         } catch (e: Exception) {
-            emptyMap()
+            empty
         }
     }
+
+    fun wkhMap(xnxqdm: String): Map<String, String> = workTasks(xnxqdm).first
 
     // ---------- 考试 ----------
 

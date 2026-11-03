@@ -130,6 +130,8 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     // ---------- 本地缓存 ----------
 
     private fun restoreCache() {
+        // 解析规则改过就丢掉旧缓存，否则会先看到旧逻辑算出来的错误教室
+        if (Prefs.cacheVer != CACHE_VER) return
         if (Prefs.cacheKey.isBlank()) return
         if (Prefs.cacheXnxqdm.isBlank()) return
         xnxqdm = Prefs.cacheXnxqdm
@@ -145,6 +147,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
 
     private fun saveCache() {
         if (xnxqdm.isBlank()) return
+        Prefs.cacheVer = CACHE_VER
         Prefs.cacheKey = xnxqdm
         Prefs.cacheXnxqdm = xnxqdm
         Prefs.cacheXnxqmc = xnxqmc
@@ -249,7 +252,14 @@ class AppVm(app: Application) : AndroidViewModel(app) {
                 week1 = w.second
             }
         }
-        val list = io { Repo.timetable(xnxqdm) }
+        // 「上课任务」既能拿网考号，也能拿到我自己的教学班代码；课表要靠它过滤掉别人的分组班
+        val tasks = io { Repo.workTasks(xnxqdm) }
+        var myJxb = emptySet<String>()
+        if (tasks != null) {
+            wkhMap = tasks.first
+            myJxb = tasks.second
+        }
+        val list = io { Repo.timetable(xnxqdm, myJxb) }
         if (list != null) {
             courses = list
             timetableLoaded = true
@@ -459,6 +469,9 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
+        /** 课表/考试缓存的结构版本；改动解析规则时 +1，旧缓存会被丢弃 */
+        private const val CACHE_VER = 2
+
         fun today(): String =
             SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(Date())
     }

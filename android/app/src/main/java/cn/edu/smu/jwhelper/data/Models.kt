@@ -8,6 +8,8 @@ data class Course(
     val name: String,
     val teacher: String,
     val place: String,
+    /** 周次 -> 教室。同一门课不同周次可能换教室，jxcdmc 会把它们拼成一串，这里按周拆开 */
+    val placeByWeek: Map<Int, String> = emptyMap(),
     val weekDay: Int,          // 1=周一
     val startTime: String,     // HH:mm:ss
     val endTime: String,
@@ -36,6 +38,12 @@ data class Course(
             startP == endP -> "第${startP}节"
             else -> "第${startP}-${endP}节"
         }
+
+    /** 指定周次实际在哪个教室；没有映射时退回整串（历史缓存里没有该字段） */
+    fun placeIn(week: Int): String {
+        if (placeByWeek.isEmpty()) return place
+        return placeByWeek[week] ?: placeByWeek.values.firstOrNull() ?: place
+    }
 
     val specialTag: String
         get() = when {

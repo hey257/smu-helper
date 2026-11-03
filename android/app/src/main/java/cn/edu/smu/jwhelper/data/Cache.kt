@@ -29,6 +29,9 @@ object Cache {
                     .put("sg", c.stage)
                     .put("cn", c.classname)
                     .put("nr", if (c.noRoom) 1 else 0)
+                    .put("pw", JSONObject().apply {
+                        c.placeByWeek.forEach { (w, p) -> put(w.toString(), p) }
+                    })
             )
         }
         return arr.toString()
@@ -41,6 +44,13 @@ object Cache {
             val arr = JSONArray(json)
             for (i in 0 until arr.length()) {
                 val o = arr.optJSONObject(i) ?: continue
+                val pw = HashMap<Int, String>()
+                o.optJSONObject("pw")?.let { obj ->
+                    obj.keys().forEach { k ->
+                        val w = k.toIntOrNull()
+                        if (w != null) pw[w] = obj.optString(k)
+                    }
+                }
                 out.add(
                     Course(
                         name = o.optString("n"),
@@ -55,7 +65,8 @@ object Cache {
                         kcbh = o.optString("kb"),
                         stage = o.optString("sg"),
                         classname = o.optString("cn"),
-                        noRoom = o.optInt("nr") == 1
+                        noRoom = o.optInt("nr") == 1,
+                        placeByWeek = pw
                     )
                 )
             }
