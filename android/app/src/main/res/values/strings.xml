@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">南医大助手</string>
+    <string name="widget_label">今日课程</string>
+    <string name="widget_desc">今天的课表：节次、课名和教室，上完的会变灰</string>
 </resources>

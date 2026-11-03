@@ -155,6 +155,8 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         if (courses.isNotEmpty()) Prefs.cacheCourses = Cache.coursesToJson(courses)
         if (exams.isNotEmpty()) Prefs.cacheExams = Cache.examsToJson(exams)
         if (wkhMap.isNotEmpty()) Prefs.cacheWkh = Cache.wkhToJson(wkhMap)
+        // 桌面小组件读的就是这份缓存，写完立刻让它重画
+        runCatching { CourseWidgetProvider.refreshAll(getApplication()) }
     }
 
     private suspend fun <T> io(block: () -> T): T? = withContext(Dispatchers.IO) {

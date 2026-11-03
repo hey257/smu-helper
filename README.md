@@ -18,6 +18,8 @@ Unofficial. Not affiliated with the school. Read the disclaimer at the bottom be
 
 **Course selection (选课).** Shows open batches, the courses available in each, and what you've already taken. You can put courses on a watch list; when the round opens it submits them for you.
 
+**Home screen widget.** A 4x3 "today" widget: each class with its period, room and start time, with finished ones faded out. It reads the local cache, so it renders instantly and doesn't need the app to be running.
+
 ## How login works
 
 The app opens the school's own login page in a WebView. Whatever that page asks for — password, captcha, QR code, unified auth — you do it there, and the app never sees your password.
