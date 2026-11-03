@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 台历主体 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,32 h36 a5,5 0 0 1 5,5 v35 a5,5 0 0 1 -5,5 h-36 a5,5 0 0 1 -5,-5 v-35 a5,5 0 0 1 5,-5 z" />
+    <!-- 顶部色条 -->
+    <path
+        android:fillColor="#2E7D6F"
+        android:pathData="M31,37 a5,5 0 0 1 5,-5 h36 a5,5 0 0 1 5,5 v7 h-46 z" />
+    <!-- 挂环 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M43,27.5 a2.5,2.5 0 1 1 5,0 v6 h-5 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,27.5 a2.5,2.5 0 1 1 5,0 v6 h-5 z" />
+    <!-- 格子 -->
+    <path
+        android:fillColor="#2E7D6F"
+        android:pathData="M40,50 h6 v6 h-6 z" />
+    <path
+        android:fillColor="#2E7D6F"
+        android:pathData="M51,50 h6 v6 h-6 z" />
+    <path
+        android:fillColor="#9CCFC6"
+        android:pathData="M62,50 h6 v6 h-6 z" />
+    <path
+        android:fillColor="#9CCFC6"
+        android:pathData="M40,60 h6 v6 h-6 z" />
+    <path
+        android:fillColor="#2E7D6F"
+        android:pathData="M51,60 h6 v6 h-6 z" />
+    <path
+        android:fillColor="#9CCFC6"
+        android:pathData="M62,60 h6 v6 h-6 z" />
+</vector>

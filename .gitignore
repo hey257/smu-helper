@@ -1,0 +1,36 @@
+# build output
+android/app/build/
+android/build/
+android/.gradle/
+.gradle/
+android/local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# scratch files from reverse-engineering the site (never commit these)
+/research/
+/.workbuddy/
+/app.html
+/applogin.html
+/captcha.html
+/cj.txt
+/gen.json
+/home.html
+/load.js
+/tac.min.js
+/MEMORY.md
+/PLAN.md
+/AGENTS.md
+/安装说明.md
+
+# kotlin/gradle local caches
+.kotlin/
+android/.kotlin/
