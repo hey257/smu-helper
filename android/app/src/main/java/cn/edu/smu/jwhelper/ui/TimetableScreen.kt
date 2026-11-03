@@ -50,7 +50,16 @@ fun TimetableScreen(vm: AppVm) {
 
     val maxWeek = remember(all) { (all.flatMap { it.weeks }.maxOrNull() ?: 20).coerceAtLeast(1) }
     var week by remember { mutableIntStateOf(vm.curWeek.coerceIn(1, maxWeek)) }
+    var weekInit by remember { mutableStateOf(vm.curWeek > 1) }
     var dir by remember { mutableIntStateOf(1) }
+
+    // 当前周要等网络返回，第一次拿到时对齐到当前周；之后用户手动翻页就不再抢回
+    LaunchedEffect(vm.curWeek, vm.timetableLoaded, maxWeek) {
+        if (!weekInit && vm.timetableLoaded && vm.curWeek > 0) {
+            week = vm.curWeek.coerceIn(1, maxWeek)
+            weekInit = true
+        }
+    }
     var day by remember { mutableStateOf(LocalDate.now()) }
     var showPicker by remember { mutableStateOf(false) }
 

@@ -155,6 +155,45 @@ object Prefs {
         get() = sp.getBoolean("hide_offline", false)
         set(v) = sp.edit().putBoolean("hide_offline", v).apply()
 
+    // ---------- 本地缓存（打开即有内容） ----------
+
+    var cacheSemesters: String
+        get() = sp.getString("cache_semesters", "") ?: ""
+        set(v) = sp.edit().putString("cache_semesters", v).apply()
+
+    var cacheCourses: String
+        get() = sp.getString("cache_courses", "") ?: ""
+        set(v) = sp.edit().putString("cache_courses", v).apply()
+
+    var cacheExams: String
+        get() = sp.getString("cache_exams", "") ?: ""
+        set(v) = sp.edit().putString("cache_exams", v).apply()
+
+    var cacheWkh: String
+        get() = sp.getString("cache_wkh", "") ?: ""
+        set(v) = sp.edit().putString("cache_wkh", v).apply()
+
+    var cacheXnxqdm: String
+        get() = sp.getString("cache_xnxqdm", "") ?: ""
+        set(v) = sp.edit().putString("cache_xnxqdm", v).apply()
+
+    var cacheXnxqmc: String
+        get() = sp.getString("cache_xnxqmc", "") ?: ""
+        set(v) = sp.edit().putString("cache_xnxqmc", v).apply()
+
+    var cacheWeek1: String
+        get() = sp.getString("cache_week1", "") ?: ""
+        set(v) = sp.edit().putString("cache_week1", v).apply()
+
+    var cacheCurWeek: Int
+        get() = sp.getInt("cache_cur_week", 0)
+        set(v) = sp.edit().putInt("cache_cur_week", v).apply()
+
+    /** 课表缓存对应哪个学期，避免切换学期后串数据 */
+    var cacheKey: String
+        get() = sp.getString("cache_key", "") ?: ""
+        set(v) = sp.edit().putString("cache_key", v).apply()
+
     // ---------- 选课 ----------
 
     /** 自动抢课总开关 */

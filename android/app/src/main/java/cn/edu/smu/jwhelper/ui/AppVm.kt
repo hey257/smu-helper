@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cn.edu.smu.jwhelper.core.Prefs
 import cn.edu.smu.jwhelper.data.Answer
+import cn.edu.smu.jwhelper.data.Cache
 import cn.edu.smu.jwhelper.data.Course
 import cn.edu.smu.jwhelper.data.ExamItem
 import cn.edu.smu.jwhelper.data.PjItem
@@ -73,6 +74,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
 
     init {
         Prefs.init(app)
+        restoreCache()
         noteText = Prefs.evalText.ifBlank { "无" }
         autoOn = Prefs.autoClassEval
         autoHour = Prefs.autoHour
@@ -123,6 +125,36 @@ class AppVm(app: Application) : AndroidViewModel(app) {
 
     fun toast(msg: String) {
         message = msg
+    }
+
+    // ---------- 本地缓存 ----------
+
+    private fun restoreCache() {
+        if (Prefs.cacheKey.isBlank()) return
+        if (Prefs.cacheXnxqdm.isBlank()) return
+        xnxqdm = Prefs.cacheXnxqdm
+        xnxqmc = Prefs.cacheXnxqmc
+        semesters = Cache.semestersFrom(Prefs.cacheSemesters)
+        courses = Cache.coursesFrom(Prefs.cacheCourses)
+        exams = Cache.examsFrom(Prefs.cacheExams)
+        wkhMap = Cache.wkhFrom(Prefs.cacheWkh)
+        week1 = Prefs.cacheWeek1
+        curWeek = Prefs.cacheCurWeek.coerceAtLeast(1)
+        timetableLoaded = courses.isNotEmpty()
+    }
+
+    private fun saveCache() {
+        if (xnxqdm.isBlank()) return
+        Prefs.cacheKey = xnxqdm
+        Prefs.cacheXnxqdm = xnxqdm
+        Prefs.cacheXnxqmc = xnxqmc
+        Prefs.cacheWeek1 = week1
+        Prefs.cacheCurWeek = curWeek
+        if (semesters.isNotEmpty()) Prefs.cacheSemesters = Cache.semestersToJson(semesters)
+        // 空数据不覆盖旧缓存，避免网络抖动把界面清空
+        if (courses.isNotEmpty()) Prefs.cacheCourses = Cache.coursesToJson(courses)
+        if (exams.isNotEmpty()) Prefs.cacheExams = Cache.examsToJson(exams)
+        if (wkhMap.isNotEmpty()) Prefs.cacheWkh = Cache.wkhToJson(wkhMap)
     }
 
     private suspend fun <T> io(block: () -> T): T? = withContext(Dispatchers.IO) {
@@ -177,9 +209,13 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun loadAll() {
+        // 有缓存就直接用缓存渲染，网络请求在后台悄悄刷新，不弹"正在读取…"
+        val hasCache = courses.isNotEmpty()
         viewModelScope.launch {
-            busy = true
-            busyText = "正在读取学期信息…"
+            if (!hasCache) {
+                busy = true
+                busyText = "正在读取学期信息…"
+            }
             val boot = io { Repo.bootstrap() }
             if (boot != null) {
                 val (cur, list) = boot
@@ -189,6 +225,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             }
             loadTimetableInternal()
             loadExamsInternal()
+            saveCache()
             busy = false
         }
     }
@@ -254,6 +291,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             evalClasses = emptyList()
             evalLoaded = false
             classQueried = false
+            saveCache()
             busy = false
         }
     }
