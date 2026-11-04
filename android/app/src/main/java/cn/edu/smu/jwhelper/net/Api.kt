@@ -100,15 +100,23 @@ object Api {
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
-    /** 是否已经登录（能拿到登录后的落地页） */
-    fun isLoggedIn(): Boolean {
+    /**
+     * 登录态判定。返回 null 表示**网络失败，无法判断** —— 这种情况绝不能当成掉线，
+     * 否则网差的时候一启动就被踢回登录页。
+     */
+    fun checkSession(): Boolean? {
         return try {
-            val html = getHtml("/new/welcome.page?ui=new")
-            html.length > 5000 && !html.contains("login-form")
+            val html = getHtml("/new/student/xsgrkb/main.page")
+            html.contains("week.page?xnxqdm=") || html.contains("id='xnxqdm'")
+        } catch (e: ApiException) {
+            if (e.code == -1) null else false
         } catch (e: Exception) {
-            false
+            null
         }
     }
+
+    /** 兼容旧调用：无法判断时按「已登录」处理，避免误踢 */
+    fun isLoggedIn(): Boolean = checkSession() ?: true
 
     fun logout() {
         cookie = null

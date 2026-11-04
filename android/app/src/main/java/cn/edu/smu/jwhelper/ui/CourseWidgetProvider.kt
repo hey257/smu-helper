@@ -40,7 +40,11 @@ class CourseWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
-            Intent.ACTION_BOOT_COMPLETED -> refreshAll(context)
+            Intent.ACTION_BOOT_COMPLETED -> {
+                refreshAll(context)
+                // 重启后闹钟会丢，需要重新排一次
+                cn.edu.smu.jwhelper.work.KeepAlive.start(context)
+            }
         }
     }
 

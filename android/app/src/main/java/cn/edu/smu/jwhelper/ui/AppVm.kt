@@ -176,8 +176,10 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     /** 检查网页登录态 */
     fun probeSession(silent: Boolean) {
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { Api.isLoggedIn() }
+            val r = withContext(Dispatchers.IO) { Api.checkSession() }
             sessionChecked = true
+            // r == null 表示没连上服务器，不能据此判断登录失效
+            val ok = r ?: (Prefs.sessionAlive && !Prefs.cookie.isNullOrBlank())
             if (ok) {
                 loggedIn = true
                 Prefs.cookie = Api.cookie
@@ -203,8 +205,10 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         lastProbeAt = now
         if (loggedIn) return
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { Api.isLoggedIn() }
+            val r = withContext(Dispatchers.IO) { Api.checkSession() }
             sessionChecked = true
+            // r == null 表示没连上服务器，不能据此判断登录失效
+            val ok = r ?: (Prefs.sessionAlive && !Prefs.cookie.isNullOrBlank())
             if (ok) {
                 loggedIn = true
                 Prefs.sessionAlive = true

@@ -22,11 +22,13 @@ class KeepAliveWorker(appContext: Context, params: WorkerParameters) : Worker(ap
         val c = Prefs.cookie
         if (c.isNullOrBlank()) return Result.success()
         Api.cookie = c
-        val ok = Api.isLoggedIn()
-        Prefs.sessionAlive = ok
-        Prefs.lastAliveAt =
-            java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
-                .format(java.util.Date())
+        val r = Api.checkSession()
+        if (r != null) {
+            Prefs.sessionAlive = r
+            Prefs.lastAliveAt =
+                java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
+                    .format(java.util.Date())
+        }
         return Result.success()
     }
 }
@@ -42,9 +44,12 @@ object KeepAlive {
             .build()
         WorkManager.getInstance(ctx)
             .enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, req)
+        // WorkManager 在 Doze 下会被推迟，闹钟这层才是真正保证 15 分钟一次的
+        AlarmKeepAlive.schedule(ctx)
     }
 
     fun stop(ctx: Context) {
         WorkManager.getInstance(ctx).cancelUniqueWork(WORK)
+        AlarmKeepAlive.cancel(ctx)
     }
 }
