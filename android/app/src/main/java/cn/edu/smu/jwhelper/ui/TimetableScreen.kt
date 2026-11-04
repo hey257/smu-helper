@@ -414,7 +414,8 @@ private fun WeekGrid(
                     // 每一天
                     for (d in 1..7) {
                         Box(Modifier.width(dayW).fillMaxHeight()) {
-                            val list = inWeek.filter { it.weekDay == d }
+                            // 同一格可能有多条（别的教学班/分组课），自己的班最后画，保证显示的是自己的
+                            val list = inWeek.filter { it.weekDay == d }.sortedBy { if (it.mine) 1 else 0 }
                             list.forEach { c ->
                                 val sp = c.startP.coerceIn(1, maxP)
                                 val ep = c.endP.coerceIn(sp, maxP)
@@ -498,7 +499,7 @@ private fun DayList(courses: List<Course>, day: LocalDate, week1: String, onDeta
     }
     val list = courses.filter { c ->
         c.weekDay == wd && (c.weeks.isEmpty() || w <= 0 || c.weeks.contains(w))
-    }.sortedBy { it.startP }
+    }.sortedWith(compareBy({ it.startP }, { if (it.mine) 1 else 0 }))
 
     if (list.isEmpty()) {
         EmptyView("这一天没有课")

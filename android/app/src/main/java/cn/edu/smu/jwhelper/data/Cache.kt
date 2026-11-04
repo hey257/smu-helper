@@ -29,6 +29,7 @@ object Cache {
                     .put("sg", c.stage)
                     .put("cn", c.classname)
                     .put("nr", if (c.noRoom) 1 else 0)
+                    .put("mn", if (c.mine) 1 else 0)
                     .put("pw", JSONObject().apply {
                         c.placeByWeek.forEach { (w, p) -> put(w.toString(), p) }
                     })
@@ -66,7 +67,8 @@ object Cache {
                         stage = o.optString("sg"),
                         classname = o.optString("cn"),
                         noRoom = o.optInt("nr") == 1,
-                        placeByWeek = pw
+                        placeByWeek = pw,
+                        mine = o.optInt("mn", 1) == 1
                     )
                 )
             }

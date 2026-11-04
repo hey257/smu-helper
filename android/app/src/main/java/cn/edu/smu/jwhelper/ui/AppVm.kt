@@ -66,6 +66,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     var diagText by mutableStateOf("")
 
     var noteText by mutableStateOf("")
+    var showAllClasses by mutableStateOf(true)
 
     var autoOn by mutableStateOf(false)
     var autoHour by mutableIntStateOf(21)
@@ -76,6 +77,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         Prefs.init(app)
         restoreCache()
         noteText = Prefs.evalText.ifBlank { "无" }
+        showAllClasses = Prefs.showAllClasses
         autoOn = Prefs.autoClassEval
         autoHour = Prefs.autoHour
         autoMinute = Prefs.autoMinute
@@ -235,6 +237,19 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** 切换「显示其他教学班」：重拉课表并刷新缓存 */
+    fun applyShowAll(on: Boolean) {
+        showAllClasses = on
+        Prefs.showAllClasses = on
+        viewModelScope.launch {
+            busy = true
+            busyText = "正在重新读取课表…"
+            loadTimetableInternal()
+            saveCache()
+            busy = false
+        }
+    }
+
     fun loadTimetable() {
         viewModelScope.launch {
             busy = true
@@ -259,7 +274,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             wkhMap = tasks.first
             myJxb = tasks.second
         }
-        val list = io { Repo.timetable(xnxqdm, myJxb) }
+        val list = io { Repo.timetable(xnxqdm, myJxb, showAllClasses) }
         if (list != null) {
             courses = list
             timetableLoaded = true
@@ -470,7 +485,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
 
     companion object {
         /** 课表/考试缓存的结构版本；改动解析规则时 +1，旧缓存会被丢弃 */
-        private const val CACHE_VER = 2
+        private const val CACHE_VER = 3
 
         fun today(): String =
             SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(Date())

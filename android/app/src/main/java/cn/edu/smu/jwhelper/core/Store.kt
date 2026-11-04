@@ -189,6 +189,11 @@ object Prefs {
         get() = sp.getInt("cache_cur_week", 0)
         set(v) = sp.edit().putInt("cache_cur_week", v).apply()
 
+    /** 课表是否显示其他教学班的排课（默认只显示自己的班） */
+    var showAllClasses: Boolean
+        get() = sp.getBoolean("show_all_classes", true)
+        set(v) = sp.edit().putBoolean("show_all_classes", v).apply()
+
     /** 缓存结构版本，解析规则变了就作废旧缓存 */
     var cacheVer: Int
         get() = sp.getInt("cache_ver", 0)

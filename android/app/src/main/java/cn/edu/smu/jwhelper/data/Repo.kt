@@ -42,7 +42,7 @@ object Repo {
      *   课表接口会把同一门课其他分组班（如 2024临床医学(八年制)[58-115]）的排课一起返回，
      *   不过滤就会表现为「同一门课同时有好几个教室」。
      */
-    fun timetable(xnxqdm: String, myJxb: Set<String> = emptySet()): List<Course> {
+    fun timetable(xnxqdm: String, myJxb: Set<String> = emptySet(), showAll: Boolean = false): List<Course> {
         val (d1, d2) = rangeOf(xnxqdm)
         val obj = Api.postJson(
             "/new/student/xsgrkb/getCalendarWeekDatas",
@@ -63,7 +63,8 @@ object Repo {
             val name = Parse.json(o, "kcmc")
             if (name.isBlank()) continue
             val jxb = Parse.json(o, "jxbdm")
-            if (myJxb.isNotEmpty() && jxb.isNotBlank() && !myJxb.contains(jxb)) continue
+            val isMine = myJxb.isEmpty() || jxb.isBlank() || myJxb.contains(jxb)
+            if (!showAll && !isMine) continue
             val place = Parse.json(o, "jxcdmc")
             val placeByWeek = parsePlaceWeeks(Parse.json(o, "jxcdmc2"))
             val noRoom = Parse.json(o, "bapjxcd") == "1"
@@ -80,6 +81,7 @@ object Repo {
                     teacher = Parse.json(o, "teaxms"),
                     place = place,
                     placeByWeek = placeByWeek,
+                    mine = isMine,
                     weekDay = wd,
                     startTime = Parse.json(o, "qssj"),
                     endTime = Parse.json(o, "jssj"),

@@ -36,6 +36,31 @@ fun MineScreen(vm: AppVm) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
 
         Block {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("显示其他教学班的课", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Ink)
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        "分组课（PBL、见习等）可能排在别的教学班里，只按自己的班过滤会漏课。默认全部列出，格子里优先显示你自己的班。",
+                        fontSize = 10.sp, color = Sub, lineHeight = 15.sp
+                    )
+                }
+                Switch(
+                    checked = vm.showAllClasses,
+                    onCheckedChange = { vm.applyShowAll(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Accent,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color(0xFFCBD0D5),
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
+            }
+        }
+        Hairline()
+
+        Block {
             SectionLabel("填空题填写内容")
             Spacer(Modifier.height(8.dp))
             Text(

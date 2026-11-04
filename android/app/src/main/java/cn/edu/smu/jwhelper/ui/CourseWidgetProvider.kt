@@ -101,7 +101,7 @@ class CourseWidgetProvider : AppWidgetProvider() {
             val todayCourses = courses
                 .filter { it.weekDay == weekday }
                 .filter { it.weeks.isEmpty() || week <= 0 || it.weeks.contains(week) }
-                .sortedBy { it.startP }
+                .sortedWith(compareBy({ it.startP }, { if (it.mine) 1 else 0 }))
 
             if (todayCourses.isEmpty()) {
                 views.removeAllViews(R.id.w_rows)

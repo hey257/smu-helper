@@ -10,6 +10,8 @@ data class Course(
     val place: String,
     /** 周次 -> 教室。同一门课不同周次可能换教室，jxcdmc 会把它们拼成一串，这里按周拆开 */
     val placeByWeek: Map<Int, String> = emptyMap(),
+    /** 是否属于我自己的教学班（分组课如 PBL 会落在别的教学班里，但课还是要上） */
+    val mine: Boolean = true,
     val weekDay: Int,          // 1=周一
     val startTime: String,     // HH:mm:ss
     val endTime: String,
