@@ -12,8 +12,8 @@ android {
         applicationId = "cn.edu.smu.jwhelper"
         minSdk = 26
         targetSdk = 34
-        versionCode = 380
-        versionName = "3.8.0"
+        versionCode = 390
+        versionName = "3.9.0"
     }
 
     buildTypes {

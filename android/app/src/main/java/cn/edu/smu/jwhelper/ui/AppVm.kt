@@ -182,7 +182,9 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             val ok = r ?: (Prefs.sessionAlive && !Prefs.cookie.isNullOrBlank())
             if (ok) {
                 loggedIn = true
-                Prefs.cookie = Api.cookie
+                // Api.cookie 为空时不能反写，否则会把已保存的 Cookie 清掉，
+                // 之后所有数据接口都会返回 -401（它们只认有没有 JSESSIONID）
+                Api.cookie?.takeIf { it.isNotBlank() }?.let { Prefs.cookie = it }
                 Prefs.sessionAlive = true
                 cn.edu.smu.jwhelper.work.KeepAlive.start(getApplication())
                 startPing()
@@ -280,12 +282,21 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         }
         val list = io { Repo.timetable(xnxqdm, myJxb, showAllClasses) }
         if (list != null) {
-            courses = list
+            // 整学期查询不返回 sknrjj（授课内容），而内容是另外按周补拉的。
+            // 直接替换 courses 会把已经补好的内容抹掉，所以按 key 继承过来。
+            val known = courses.associate { contentKey(it) to it.content }
+            courses = list.map { c ->
+                val ct = known[contentKey(c)]
+                if (ct.isNullOrBlank()) c else c.copy(content = ct)
+            }
             timetableLoaded = true
         }
         val d = io { Repo.weekDates(xnxqdm, curWeek) }
         if (d != null) weekDates = d
     }
+
+    /** 授课内容与课程的对齐键；按周查询和整学期查询必须用同一套算法 */
+    private fun contentKey(c: Course) = c.kcrwdm + "|" + c.weekDay + "|" + c.startP
 
     /** 拉当周的授课内容并合并进课程（服务端只在按周查询时给这个字段） */
     fun loadWeekContent(week: Int) {
@@ -295,8 +306,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             if (m.isEmpty()) return@launch
             var changed = false
             val updated = courses.map { c ->
-                val k = c.kcrwdm + "|" + c.weekDay + "|" + c.startP
-                val t = m[k]
+                val t = m[contentKey(c)]
                 if (t.isNullOrBlank() || t == c.content) c else {
                     changed = true
                     c.copy(content = t)

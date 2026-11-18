@@ -63,13 +63,14 @@ fun TimetableScreen(vm: AppVm) {
     var day by remember { mutableStateOf(LocalDate.now()) }
     var showPicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(week) {
+    // timetableLoaded 也作为依赖：课表重新拉取会替换整个列表，内容要再补一次
+    LaunchedEffect(week, vm.timetableLoaded) {
         vm.loadWeekDates(week)
         vm.loadWeekContent(week)
     }
 
     // 日视图也要把所在周的授课内容拉下来
-    LaunchedEffect(day, weekly) {
+    LaunchedEffect(day, weekly, vm.timetableLoaded) {
         if (!weekly) {
             val w = try {
                 if (vm.week1.isBlank()) 0
