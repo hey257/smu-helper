@@ -12,6 +12,10 @@ data class Course(
     val placeByWeek: Map<Int, String> = emptyMap(),
     /** 是否属于我自己的教学班（分组课如 PBL 会落在别的教学班里，但课还是要上） */
     val mine: Boolean = true,
+    /** 课程任务代码，用来跟「按周查询」返回的授课内容对齐 */
+    val kcrwdm: String = "",
+    /** 本次课的授课内容（只有按周查询才返回，整学期查询没有） */
+    val content: String = "",
     val weekDay: Int,          // 1=周一
     val startTime: String,     // HH:mm:ss
     val endTime: String,

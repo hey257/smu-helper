@@ -82,6 +82,7 @@ object Repo {
                     place = place,
                     placeByWeek = placeByWeek,
                     mine = isMine,
+                    kcrwdm = Parse.json(o, "kcrwdm"),
                     weekDay = wd,
                     startTime = Parse.json(o, "qssj"),
                     endTime = Parse.json(o, "jssj"),
@@ -137,6 +138,42 @@ object Repo {
     }
 
     // ---------- 网考号（上课任务） ----------
+
+    /**
+     * 授课内容（sknrjj）**只有按周查询才返回**，整学期查询里这个字段根本不存在。
+     * 网页端也是等用户选了某一周才显示「授课内容」。
+     * key 用 kcrwdm|weekDay|startP 与本地 Course 对齐。
+     */
+    fun weekContents(xnxqdm: String, week: Int): Map<String, String> {
+        if (week <= 0) return emptyMap()
+        val (d1, d2) = rangeOf(xnxqdm)
+        val obj = Api.postJson(
+            "/new/student/xsgrkb/getCalendarWeekDatas",
+            mapOf(
+                "d1" to "$d1 00:00:00",
+                "d2" to "$d2 00:00:00",
+                "zc" to week.toString(),
+                "xnxqdm" to xnxqdm,
+                "szxqdm" to xnxqdm,
+                "yxdm" to ""
+            ),
+            referer = "${Api.ROOT}/new/student/xsgrkb/week.page?xnxqdm=$xnxqdm"
+        )
+        val arr = obj.optJSONArray("data") ?: return emptyMap()
+        val out = HashMap<String, String>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val text = Parse.json(o, "sknrjj").trim()
+            if (text.isBlank()) continue
+            val raw = o.optString("qsxq").toIntOrNull() ?: continue
+            if (raw !in 1..7) continue
+            val wd = if (raw == 1) 7 else raw - 1
+            val sp = o.optString("ps").toIntOrNull() ?: 0
+            val key = Parse.json(o, "kcrwdm") + "|" + wd + "|" + sp
+            if (out[key].isNullOrBlank()) out[key] = text
+        }
+        return out
+    }
 
     /** 按括号层级切分，教室名里本身可能带逗号 */
     private fun splitTop(s: String): List<String> {

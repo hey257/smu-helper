@@ -287,6 +287,28 @@ class AppVm(app: Application) : AndroidViewModel(app) {
         if (d != null) weekDates = d
     }
 
+    /** 拉当周的授课内容并合并进课程（服务端只在按周查询时给这个字段） */
+    fun loadWeekContent(week: Int) {
+        if (week <= 0 || xnxqdm.isBlank()) return
+        viewModelScope.launch {
+            val m = io { Repo.weekContents(xnxqdm, week) } ?: return@launch
+            if (m.isEmpty()) return@launch
+            var changed = false
+            val updated = courses.map { c ->
+                val k = c.kcrwdm + "|" + c.weekDay + "|" + c.startP
+                val t = m[k]
+                if (t.isNullOrBlank() || t == c.content) c else {
+                    changed = true
+                    c.copy(content = t)
+                }
+            }
+            if (changed) {
+                courses = updated
+                saveCache()
+            }
+        }
+    }
+
     fun loadWeekDates(week: Int) {
         viewModelScope.launch {
             val d = io { Repo.weekDates(xnxqdm, week) }
@@ -489,7 +511,7 @@ class AppVm(app: Application) : AndroidViewModel(app) {
 
     companion object {
         /** 课表/考试缓存的结构版本；改动解析规则时 +1，旧缓存会被丢弃 */
-        private const val CACHE_VER = 3
+        private const val CACHE_VER = 4
 
         fun today(): String =
             SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(Date())

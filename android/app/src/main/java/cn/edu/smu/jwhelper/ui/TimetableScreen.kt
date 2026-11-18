@@ -63,7 +63,23 @@ fun TimetableScreen(vm: AppVm) {
     var day by remember { mutableStateOf(LocalDate.now()) }
     var showPicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(week) { vm.loadWeekDates(week) }
+    LaunchedEffect(week) {
+        vm.loadWeekDates(week)
+        vm.loadWeekContent(week)
+    }
+
+    // 日视图也要把所在周的授课内容拉下来
+    LaunchedEffect(day, weekly) {
+        if (!weekly) {
+            val w = try {
+                if (vm.week1.isBlank()) 0
+                else ChronoUnit.WEEKS.between(LocalDate.parse(vm.week1), day).toInt() + 1
+            } catch (e: Exception) {
+                0
+            }
+            if (w > 0) vm.loadWeekContent(w)
+        }
+    }
 
     fun prev() {
         if (week > 1) {
@@ -279,6 +295,7 @@ private fun CourseDetail(c: Course, wkh: String, week: Int) {
         if (c.teacher.isNotBlank()) DetailLine("教师", c.teacher)
         DetailLine("地点", c.placeIn(week).ifBlank { "未写明" })
         if (c.stage.isNotBlank()) DetailLine("环节", c.stage)
+        if (c.content.isNotBlank()) DetailLine("内容", c.content)
         if (c.weeks.isNotEmpty()) DetailLine("周次", c.weeks.joinToString(","))
         if (c.classname.isNotBlank()) DetailLine("教学班", c.classname)
         DetailLine("网考号", wkh.ifBlank { "—" })
