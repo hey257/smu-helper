@@ -3,6 +3,7 @@ package cn.edu.smu.jwhelper.ui
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -23,6 +24,78 @@ import androidx.compose.ui.viewinterop.AndroidView
 import cn.edu.smu.jwhelper.WebHolder
 import cn.edu.smu.jwhelper.core.Prefs
 import cn.edu.smu.jwhelper.net.Api
+
+/**
+ * 登录页里账号密码的回收口。只写进 Keystore 加密后的 Prefs，不外传。
+ * 用户在登录页手输一次，下次打开就不用再输。
+ */
+private class LoginBridge {
+    @JavascriptInterface
+    fun save(account: String?, pwd: String?) {
+        val a = account?.trim().orEmpty()
+        val p = pwd.orEmpty()
+        if (a.isBlank() || p.isBlank()) return
+        if (a.length > 64 || p.length > 128) return
+        if (Prefs.username != a) {
+            Prefs.username = a
+            Prefs.password = p
+            return
+        }
+        if (Prefs.password != p) Prefs.password = p
+    }
+}
+
+/**
+ * 登录页的自动填充脚本。
+ *
+ * 学校每次提交登录都强制弹 Tianai 人机验证（滑块/拼图/点选），而且 captchaToken
+ * 参与密码的 AES 加密，没有它连请求都构造不出来——所以"完全不碰"的自动登录做不到。
+ * 这里只做两件事：把账号密码填好、点一下登录，让用户拖一次验证码就能进去。
+ *
+ * 顺带挂一个轮询，用户手输的账号密码会被记下来（加密存本机），下次自动填。
+ */
+private fun autoFillScript(): String {
+    val acc = org.json.JSONObject.quote(Prefs.username)
+    val pwd = org.json.JSONObject.quote(Prefs.password)
+    val allowAuto = Prefs.autoLogin &&
+        Prefs.username.isNotBlank() && Prefs.password.isNotBlank()
+    return """
+(function(){
+  var a=document.getElementById('L_account'), p=document.getElementById('L_pass');
+  if(!a||!p) return 'nologin';
+
+  if(!window.__smuWatch){
+    window.__smuWatch=1;
+    var la='', lp='';
+    setInterval(function(){
+      var x=document.getElementById('L_account'), y=document.getElementById('L_pass');
+      if(!x||!y||!x.value||!y.value) return;
+      if(x.value===la && y.value===lp) return;
+      la=x.value; lp=y.value;
+      try{ SMUBridge.save(x.value,y.value); }catch(e){}
+    },1500);
+  }
+
+  if(!${if (allowAuto) "true" else "false"}) return 'off';
+  if(a.value||p.value) return 'occupied';
+
+  a.value=$acc;
+  p.value=$pwd;
+  ['input','change','keyup'].forEach(function(t){
+    a.dispatchEvent(new Event(t,{bubbles:true}));
+    p.dispatchEvent(new Event(t,{bubbles:true}));
+  });
+
+  setTimeout(function(){
+    if(window.__smuClicked) return;
+    var b=document.querySelector('button[lay-filter="login"]');
+    if(b){ window.__smuClicked=1; b.click(); }
+  },600);
+
+  return 'filled';
+})()
+""".trimIndent()
+}
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -63,6 +136,8 @@ fun WebLoginScreen(vm: AppVm) {
                             val c = CookieManager.getInstance().getCookie(Api.ROOT)
                             CookieManager.getInstance().flush()
                             vm.onWebPageLoaded(c)
+                            // 登录页：先记下用户输入的账号密码，再尝试自动填充
+                            view?.evaluateJavascript(autoFillScript()) { }
                         }
                     }
 
@@ -76,6 +151,7 @@ fun WebLoginScreen(vm: AppVm) {
                             // 忽略
                         }
                     }
+                    addJavascriptInterface(LoginBridge(), "SMUBridge")
                     loadUrl(Api.ROOT)
                     WebHolder.view = this
                 }

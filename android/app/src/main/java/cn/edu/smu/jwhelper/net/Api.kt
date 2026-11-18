@@ -101,13 +101,48 @@ object Api {
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
     /**
-     * 登录态判定。返回 null 表示**网络失败，无法判断** —— 这种情况绝不能当成掉线，
-     * 否则网差的时候一启动就被踢回登录页。
+     * 登录态判定。返回 null 表示**网络失败，无法判断**。
+     *
+     * 这里探测的是数据接口，不是页面。原因是实测发现：这套教务系统的
+     * `/new/student/...` 数据接口不校验会话（带着已失效的 JSESSIONID 照样返回数据），
+     * 只有页面路由才校验。早先拿页面做判定，session 一过期就判成"掉线"，
+     * 明明还能拉数据却被踢回登录页——那才是"时不时要重新登录"的真正来源。
+     *
+     * 现在只要接口还能正常返回 JSON，就认为可用，不再打扰用户。
      */
     fun checkSession(): Boolean? {
+        val xq = try {
+            cn.edu.smu.jwhelper.core.Prefs.xnxqdm
+        } catch (e: Exception) {
+            null
+        }
+        if (xq.isNullOrBlank()) return checkPageSession()
+        return try {
+            val obj = postJson(
+                "/new/student/xsksrw/paginateXsksrw",
+                mapOf(
+                    "xnxqdm" to xq,
+                    "page" to "1",
+                    "rows" to "1",
+                    "zc" to "",
+                    "szxqdm" to xq,
+                    "yxdm" to ""
+                ),
+                referer = "$ROOT/new/welcome.page?ui=new"
+            )
+            obj.has("rows") || obj.optInt("code", -1) == 0
+        } catch (e: ApiException) {
+            if (e.code == -1) null else false
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** 没有学期信息时退回到页面判定（此时还没登录过，走这条路很正常） */
+    private fun checkPageSession(): Boolean? {
         return try {
             val html = getHtml("/new/student/xsgrkb/main.page")
-            html.contains("week.page?xnxqdm=") || html.contains("id='xnxqdm'")
+            html.contains("week.page?xnxqdm=")
         } catch (e: ApiException) {
             if (e.code == -1) null else false
         } catch (e: Exception) {

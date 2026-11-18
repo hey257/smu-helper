@@ -83,6 +83,11 @@ object Prefs {
         get() = Secret.decrypt(sp.getString("pwd", "") ?: "")
         set(v) = sp.edit().putString("pwd", Secret.encrypt(v)).apply()
 
+    /** 登录页是否自动填账号密码并自动提交（验证码仍需手动完成） */
+    var autoLogin: Boolean
+        get() = sp.getBoolean("auto_login", true)
+        set(v) = sp.edit().putBoolean("auto_login", v).apply()
+
     /** 当前学期代码，如 2026-2027-1 */
     var xnxqdm: String?
         get() = sp.getString("xnxqdm", null)
