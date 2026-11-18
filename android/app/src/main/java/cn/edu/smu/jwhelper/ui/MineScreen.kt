@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,13 +28,106 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cn.edu.smu.jwhelper.core.Prefs
+import cn.edu.smu.jwhelper.util.Ics
+import cn.edu.smu.jwhelper.util.Update
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MineScreen(vm: AppVm) {
     var showDiag by remember { mutableStateOf(false) }
     val clip = LocalClipboardManager.current
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var checking by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<Update.Info?>(null) }
+    var downloading by remember { mutableStateOf(false) }
+    var dlProgress by remember { mutableIntStateOf(0) }
+
+    fun startDownload() {
+        val info = updateInfo ?: return
+        if (!Update.canInstall(ctx)) {
+            vm.toast("需要先允许安装未知应用，已帮你打开设置")
+            Update.openInstallSettings(ctx)
+            return
+        }
+        downloading = true
+        dlProgress = 0
+        scope.launch {
+            try {
+                val f = withContext(Dispatchers.IO) {
+                    Update.download(ctx, info) { p -> dlProgress = p }
+                }
+                downloading = false
+                Update.install(ctx, f)
+            } catch (e: Exception) {
+                downloading = false
+                vm.toast("下载失败：" + (e.message ?: "网络问题") + "，可改用浏览器打开")
+            }
+        }
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+
+        Block {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("导出课表到日历", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Ink)
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        "生成 .ics 文件，导入系统日历后每节课都有提醒；教室按当周算。",
+                        fontSize = 10.sp, color = Sub, lineHeight = 15.sp
+                    )
+                }
+                LineButton("导出") {
+                    when {
+                        vm.courses.isEmpty() -> vm.toast("课表还没加载完，稍后再试")
+                        vm.week1.isBlank() -> vm.toast("缺少学期第 1 周日期，先刷新课表")
+                        else -> {
+                            val name = vm.xnxqmc.ifBlank { "课表" } + " 课表"
+                            Ics.exportAndShare(ctx, vm.courses, vm.week1, name)
+                        }
+                    }
+                }
+            }
+        }
+        Hairline()
+
+        Block {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("检查更新", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Ink)
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        "当前版本 " + Update.currentVersion(ctx),
+                        fontSize = 10.sp, color = Sub
+                    )
+                }
+                LineButton(if (checking) "检查中…" else "检查", enabled = !checking) {
+                    checking = true
+                    scope.launch {
+                        val r = withContext(Dispatchers.IO) {
+                            try {
+                                Update.checkLatest()
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        checking = false
+                        if (r == null) {
+                            vm.toast("连不上 GitHub，稍后再试，或去 Release 页手动下载")
+                        } else if (Update.isNewer(r.tag, Update.currentVersion(ctx))) {
+                            updateInfo = r
+                        } else {
+                            vm.toast("已是最新版本")
+                        }
+                    }
+                }
+            }
+        }
+        Hairline()
 
         Block {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,6 +258,53 @@ fun MineScreen(vm: AppVm) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp)
         )
         Spacer(Modifier.height(28.dp))
+    }
+
+    updateInfo?.let { info ->
+        AlertDialog(
+            onDismissRequest = { if (!downloading) updateInfo = null },
+            containerColor = Card,
+            title = {
+                Text("发现新版本 ${info.tag}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+            },
+            text = {
+                Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                    if (downloading) {
+                        Text("正在下载 $dlProgress%", fontSize = 12.sp, color = Ink)
+                        Spacer(Modifier.height(6.dp))
+                        Text("包体约 20MB，请保持网络。", fontSize = 10.sp, color = Sub)
+                    } else {
+                        Text(
+                            info.notes.ifBlank { "（没有更新说明）" }.take(1500),
+                            fontSize = 10.sp, color = Sub, lineHeight = 15.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                if (downloading) {
+                    TextButton(onClick = {}) {
+                        Text("下载中 $dlProgress%", fontSize = 13.sp, color = Sub)
+                    }
+                } else {
+                    TextButton(onClick = { startDownload() }) {
+                        Text("下载并安装", fontSize = 13.sp, color = Ink, fontWeight = FontWeight.Medium)
+                    }
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        Update.openReleasePage(ctx, "https://github.com/" + Update.REPO + "/releases/latest")
+                    }) { Text("浏览器打开", fontSize = 12.sp, color = Sub) }
+                    if (!downloading) {
+                        TextButton(onClick = { updateInfo = null }) {
+                            Text("取消", fontSize = 12.sp, color = Sub)
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
