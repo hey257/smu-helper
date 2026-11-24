@@ -116,7 +116,9 @@ object Api {
         } catch (e: Exception) {
             null
         }
-        if (xq.isNullOrBlank()) return checkPageSession()
+        // 还没有学期代码时判断不了——别拿页面去猜，猜错就是把人踢回登录页。
+        // 交给调用方按「未知」处理，等 loadAll 拿到学期后再判。
+        if (xq.isNullOrBlank()) return null
         return try {
             val obj = postJson(
                 "/new/student/xsksrw/paginateXsksrw",
@@ -131,18 +133,6 @@ object Api {
                 referer = "$ROOT/new/welcome.page?ui=new"
             )
             obj.has("rows") || obj.optInt("code", -1) == 0
-        } catch (e: ApiException) {
-            if (e.code == -1) null else false
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    /** 没有学期信息时退回到页面判定（此时还没登录过，走这条路很正常） */
-    private fun checkPageSession(): Boolean? {
-        return try {
-            val html = getHtml("/new/student/xsgrkb/main.page")
-            html.contains("week.page?xnxqdm=")
         } catch (e: ApiException) {
             if (e.code == -1) null else false
         } catch (e: Exception) {

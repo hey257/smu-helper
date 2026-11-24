@@ -379,6 +379,10 @@ object Repo {
             val o = rows.optJSONObject(i) ?: continue
             val kc = Parse.json(o, "kcmc")
             if (kc.isBlank()) continue
+            // 服务端是否真的按 jsrq 过滤并不确定（这系统有忽略日期参数的先例），
+            // 行里既然带 jsrq，就在客户端再筛一遍，保证只显示选中的那天。
+            val rowDate = Parse.json(o, "jsrq").take(10)
+            if (rowDate.isNotBlank() && rowDate != date) continue
             val done = Parse.json(o, "pjdm").isNotBlank()
             val sub = listOf(
                 Parse.json(o, "teaxm"),

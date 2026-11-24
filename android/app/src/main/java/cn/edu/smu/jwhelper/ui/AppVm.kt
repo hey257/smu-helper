@@ -44,7 +44,20 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     var message by mutableStateOf<String?>(null)
 
     var semesters by mutableStateOf<List<Repo.Semester>>(emptyList())
-    var xnxqdm by mutableStateOf("")
+
+    private var xnxqdmState by mutableStateOf("")
+
+    /**
+     * 当前学期代码。写入时必须同步落盘：
+     * 心跳判定和自动随堂评价都在后台线程读 Prefs.xnxqdm，
+     * 只存在 ViewModel 里的话它们永远拿到 null。
+     */
+    var xnxqdm: String
+        get() = xnxqdmState
+        set(v) {
+            xnxqdmState = v
+            if (v.isNotBlank()) runCatching { Prefs.xnxqdm = v }
+        }
     var xnxqmc by mutableStateOf("")
 
     var courses by mutableStateOf<List<Course>>(emptyList())
@@ -179,7 +192,10 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             val r = withContext(Dispatchers.IO) { Api.checkSession() }
             sessionChecked = true
             // r == null 表示没连上服务器，不能据此判断登录失效
-            val ok = r ?: (Prefs.sessionAlive && !Prefs.cookie.isNullOrBlank())
+            // r == null 表示判断不了（没学期代码/没网）。这时只要求有 Cookie 就放行：
+            // 数据接口不校验登录态，放行基本都能拉到数据；而死守旧的 sessionAlive
+            // 会让一次误判永久卡在登录页。
+            val ok = r ?: !Prefs.cookie.isNullOrBlank()
             if (ok) {
                 loggedIn = true
                 // Api.cookie 为空时不能反写，否则会把已保存的 Cookie 清掉，
@@ -210,7 +226,10 @@ class AppVm(app: Application) : AndroidViewModel(app) {
             val r = withContext(Dispatchers.IO) { Api.checkSession() }
             sessionChecked = true
             // r == null 表示没连上服务器，不能据此判断登录失效
-            val ok = r ?: (Prefs.sessionAlive && !Prefs.cookie.isNullOrBlank())
+            // r == null 表示判断不了（没学期代码/没网）。这时只要求有 Cookie 就放行：
+            // 数据接口不校验登录态，放行基本都能拉到数据；而死守旧的 sessionAlive
+            // 会让一次误判永久卡在登录页。
+            val ok = r ?: !Prefs.cookie.isNullOrBlank()
             if (ok) {
                 loggedIn = true
                 Prefs.sessionAlive = true

@@ -91,12 +91,22 @@ private fun ClassEval(vm: AppVm) {
             Modifier.fillMaxWidth().background(Card).padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.clickable { vm.evalDate = shift(vm.evalDate, -1) }.padding(8.dp)) {
-                Text("‹", fontSize = 16.sp, color = Ink)
+            Box(
+                Modifier.size(40.dp).clickable { vm.evalDate = shift(vm.evalDate, -1) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("‹", fontSize = 18.sp, color = Ink)
             }
-            Text(vm.evalDate, fontSize = 12.sp, color = Ink, fontWeight = FontWeight.Medium)
-            Box(Modifier.clickable { vm.evalDate = shift(vm.evalDate, 1) }.padding(8.dp)) {
-                Text("›", fontSize = 16.sp, color = Ink)
+            Text(
+                vm.evalDate, fontSize = 13.sp, color = Ink, fontWeight = FontWeight.Medium,
+                modifier = Modifier.widthIn(min = 78.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Box(
+                Modifier.size(40.dp).clickable { vm.evalDate = shift(vm.evalDate, 1) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("›", fontSize = 18.sp, color = Ink)
             }
             SectionLabel("今天", Modifier.padding(start = 4.dp).clickable { vm.evalDate = AppVm.today() })
             Spacer(Modifier.weight(1f))
@@ -176,5 +186,7 @@ private fun EvalRow(t: PjItem, onEval: () -> Unit) {
 private fun shift(date: String, delta: Int): String = try {
     LocalDate.parse(date).plusDays(delta.toLong()).toString()
 } catch (e: Exception) {
-    AppVm.today()
+    // 解析失败就保持原值。原来这里是返回 today()，
+    // 一旦格式不对就会「怎么点都回到今天」，把问题藏起来。
+    date
 }
